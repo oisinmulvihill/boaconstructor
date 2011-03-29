@@ -32,16 +32,15 @@ Name='boaconstructor'
 ProjecUrl=""
 Version='0.1.0'
 Author='Oisin Mulvihill'
-AuthorEmail='oisinmulvihill at gmail dot com'
+AuthorEmail='oisin dot mulvihill a-t gmail d-ot com'
 Maintainer=' Oisin Mulvihill'
 Summary='Templating for dictionaries.'
 License='Apache License v2.0'
 ShortDescription=Summary
-Description=
-    "You have templating for various types of file outputs. This library "
-    "offers templating for the *data* passed to other template libraries. "
-    "This allows the construction of python dictionaries from other 'template' "
-    "dictionaries. "
+Description=(
+    "The boacontructor is a templating library for *data*. It allows you to "
+    "construct Python dictionaries from other templates, dictionaries or "
+    "instances. "
 )
 
 TestSuite = 'boaconstructor.tests'
