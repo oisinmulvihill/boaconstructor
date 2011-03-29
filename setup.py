@@ -40,7 +40,8 @@ ShortDescription=Summary
 Description=(
     "The boacontructor is a templating library for *data*. It allows you to "
     "construct Python dictionaries from other templates, dictionaries or "
-    "instances. "
+    "instances. \n"
+    "Source code is available on github: https://github.com/oisinmulvihill/boaconstructor"
 )
 
 TestSuite = 'boaconstructor.tests'

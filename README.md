@@ -22,15 +22,15 @@ Links
 -----
 
  * GitHub project: https://github.com/oisinmulvihill/boaconstructor
- * Pypi page:
- * Sphinx docs:
+ * Pypi page: http://pypi.python.org/pypi/boaconstructor
+ * Sphinx docs: -- to follow shortly --
 
 
 Introduction
 ------------
 
 The boacontructor is a templating library for *data*. It allows you to construct
-Python dictionaries from other templates, dictionaries or instances. 
+Python dictionaries from other templates, dictionaries or instances.
 
 <pre>
 
