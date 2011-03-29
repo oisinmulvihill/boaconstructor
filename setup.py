@@ -37,7 +37,7 @@ Maintainer=' Oisin Mulvihill'
 Summary='Templating for dictionaries.'
 License='Apache License v2.0'
 ShortDescription=Summary
-Description=(
+Description=
     "You have templating for various types of file outputs. This library "
     "offers templating for the *data* passed to other template libraries. "
     "This allows the construction of python dictionaries from other 'template' "

@@ -18,12 +18,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+Links
+-----
+
+ * GitHub project: https://github.com/oisinmulvihill/boaconstructor
+ * Pypi page:
+ * Sphinx docs:
+
 
 Introduction
 ------------
 
-The boacontructor module is a templating library for data. It allows you to
-construct python dictionaries from common and specific parts.
+The boacontructor is a templating library for *data*. It allows you to construct
+Python dictionaries from other templates, dictionaries or instances. 
 
 <pre>
 
@@ -70,4 +77,3 @@ result = host2.render()
 </pre>
 
 Have a look at tests/testboacontructor.py for usage. More docs to follow...
-
