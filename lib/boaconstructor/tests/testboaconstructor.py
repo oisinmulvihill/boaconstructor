@@ -27,18 +27,58 @@ from boaconstructor import Template
 class BoaConstructor(unittest.TestCase):
 
 
+    def testAllInclusionDictKeyExpansion(self):
+        """
+        """
+        common = dict(buffer=4096)
+
+        auth = dict(user='james', secret='11ed394')
+
+        test1 = Template(
+            'test1',
+            {
+                'system':'Live00',
+                'recv': 'common.$.buffer',
+            },
+        )
+
+        result = test1.render(
+            dict(
+                common=common,
+            ),
+            # Extend the rendered dict with all the resolve key,values
+            # from the given dict. It will also be processed using the
+            # references:
+            merge=auth,
+        )
+
+        correct = dict(
+            system='Live00',
+            recv=4096,
+            user='james',
+            secret='11ed394',
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
     def testListsAndTemplateIncludes(self):
         """Test the 'reference.*' which includes all the content of a template
         in another and its use in lists.
 
         """
-
-
-        return
-
         common = dict(keep='yes', buffer=4096)
 
-        auth = dict(user='bsprocket', secret='11ed394')
+        auth = dict(user='james', secret='11ed394')
 
         test1 = Template(
             'test1',
@@ -46,7 +86,7 @@ class BoaConstructor(unittest.TestCase):
                 port=2394,
                 hostname='bob',
                 user='auth.$.user',
-                password='auth.$.pass',
+                password='auth.$.secret',
             ),
         )
 
@@ -57,7 +97,10 @@ class BoaConstructor(unittest.TestCase):
         test2 = Template(
             'test2',
             dict(host='test1.*', keep='com.$.keep'),
-            references=dict(com=common),
+            references=dict(
+                com=common,
+                test1=test1,
+            ),
         )
 
         # simulate only known authentication details at run/render time:
@@ -66,12 +109,63 @@ class BoaConstructor(unittest.TestCase):
         ))
 
         correct = dict(
-            host=dict(port=2394,hostname='bob',user='bsprocket',password='11ed394'),
-            hostname='bob',
+            host=dict(
+                port=2394,
+                hostname='bob',
+                user='james',
+                password='11ed394'
+            ),
             keep='yes'
         )
 
         # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+        # Now, add list of ref-attr or all-inclusions into the mix and see
+        # that these are correctly resolved and replaced.
+        common = dict(keep='yes', buffer=4096)
+
+        peter = dict(username='pstoppard', secret='11ed394')
+        graham = dict(username='gturner', secret='54jsl31')
+
+        test1 = Template(
+            'test1',
+            dict(
+                options='common.*',
+                usernames=['peter.$.username','graham.$.username'],
+                users=['peter.*', 'graham.*'],
+            ),
+        )
+
+        result = test1.render(
+            references={
+                'common': common,
+                'peter': peter,
+                'graham': graham,
+            }
+        )
+
+        # I need to sort so it will order as python would order the dicts.
+        u = [
+            dict(username='pstoppard', secret='11ed394'),
+            dict(username='gturner', secret='54jsl31'),
+        ]
+        u.sort()
+        correct = dict(
+            options=dict(keep='yes', buffer=4096),
+            usernames=['pstoppard', 'gturner'],
+            users=u,
+        )
+
         err_msg = """result != correct
 result:
 %s
@@ -128,7 +222,6 @@ correct:
         """ % (pprint.pformat(result), pprint.pformat(correct))
 
         self.assertEquals(result, correct, err_msg)
-
 
 
     def testBuildRefCache(self):
@@ -192,31 +285,6 @@ correct:
         """ % (pprint.pformat(result), pprint.pformat(correct))
 
         self.assertEquals(result, correct, err_msg)
-
-
-    def testIsRefAttr(self):
-        """Test the little reference checker and its return of the reference
-        and attribute.
-
-        """
-        reference = 'reference'
-        output = ['','']
-        rc = utils.is_ref_attr(reference, output)
-        self.assertEquals(rc, False)
-        self.assertEquals(output, ['',''])
-
-        reference = 'reference.$.'
-        output = ['','']
-        rc = utils.is_ref_attr(reference, output)
-        self.assertEquals(rc, False)
-        self.assertEquals(output, ['',''])
-
-        reference = 'reference.$.attribute'
-        output = ['','']
-        rc = utils.is_ref_attr(reference, output)
-        self.assertEquals(rc, True)
-        self.assertEquals(output, ['reference','attribute'])
-
 
 
     def testHasGet(self):
@@ -319,6 +387,26 @@ correct:
         results = utils.resolve_references(ref, att, int_refs, ext_refs)
         correct = "localhost"
         self.assertEquals(results, correct)
+
+        # Test all inclusion reference resolving i.e. attribute is None
+        # and only the reference is important.
+        #
+        ref = "common"
+        att = None
+        int_refs = dict(common=dict(hostname='example.com'))
+        ext_refs = dict(common=dict(hostname='localhost'))
+        results = utils.resolve_references(ref, att, int_refs, ext_refs)
+        correct = dict(hostname='localhost')
+        self.assertEquals(results, correct)
+
+        ref = "common"
+        att = None
+        int_refs = dict(common=dict(hostname='example.com'))
+        ext_refs = {}
+        results = utils.resolve_references(ref, att, int_refs, ext_refs)
+        correct = dict(hostname='example.com')
+        self.assertEquals(results, correct)
+
 
 
     def testMixedDictTemplateAndInstanceResolution(self):

@@ -44,7 +44,7 @@ def parse_value(value):
 
     if type(value) in types.StringTypes:
         # Only bother with strings, ignore everything else.
-        print "value to parse: '%s'." % value
+        #print "value to parse: '%s'." % value
 
         if value.strip() == '.*':
             # ignore empty .* inclusion
@@ -55,8 +55,8 @@ def parse_value(value):
 
         if refatt_result:
             found = refatt_result.groupdict()
-            print "found: '%s'" % pprint.pformat(found)
-            print "groups", refatt_result.groups()
+            #print "found: '%s'" % pprint.pformat(found))
+            #print "groups", refatt_result.groups())
 
             returned['found'] = 'refatt'
             returned['reference'] = found.get('ref')
@@ -64,8 +64,8 @@ def parse_value(value):
 
         if allinc_result:
             found = allinc_result.groupdict()
-            print "found: '%s'" % pprint.pformat(found)
-            print "groups", allinc_result.groups()
+            #print("found: '%s'" % pprint.pformat(found))
+            #print("groups", allinc_result.groups())
 
             returned['found'] = 'all'
             returned['allfrom'] = found.get('allfrom')
@@ -162,7 +162,8 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
 
     :param attribute: This is the dict key we must look up in the
     references. This is the <attribute> recovered from a call to
-    parse_value.
+    parse_value. If this is None then only the reference will be
+    resolved. What it points at will then be returned.
 
     :param int_references: This the reference dict usually representing the
     reference stored as a member of the Template class.
@@ -179,6 +180,8 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
     If the attribute is not found in in the any of the reference dicts, then
     AttributeError will be raised.
 
+    :returns: The value or item pointed at by the reference and / or attribute.
+
     """
     found = False
     returned = ""
@@ -194,7 +197,13 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
     ext_result = None
     if has(ext_references, reference):
         r = get(ext_references, reference)
-        if has(r, attribute):
+
+        if not attribute:
+            # all-inclusion operation, return the reference
+            found = True
+            returned = r
+
+        elif has(r, attribute):
             # Success, skip int_references lookup:
             found = True
             returned = get(r, attribute)
@@ -203,7 +212,13 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
     if not found and has(int_references, reference):
         # Nothing was found in externals so try in the internal references.
         r = get(int_references, reference)
-        if has(r, attribute):
+
+        if not attribute:
+            # all-inclusion operation, return the reference
+            found = True
+            returned = r
+
+        elif has(r, attribute):
             found = True
             # Hurragh, its here.
             returned = get(r, attribute)
@@ -253,49 +268,126 @@ def build_ref_cache(int_refs, ext_refs):
     return reference_cache
 
 
-def render(top_level_items, int_refs, ext_refs):
+def hunt_n_resolve(value, reference_cache):
+    """Resolve a single attribute using the given reference_cache.
+
+    :returns: The value the attribute points at, if it
+    is was a reference. Other the value is passed through
+    unprocessed.
+
+    """
+    # Hunt for the last non reference-attribute i.e the actual value
+    loop_count = 0
+    returned = value
+
+    # Prevent looping forever on problems:
+    retries = 20
+    while retries:
+        retries -= 1
+
+        #print("loop_count '%s', value: '%s'" %(loop_count, value))
+
+        result = parse_value(returned)
+
+        if result['found'] == 'refatt':
+            # Resolve what this reference points at. Then loop to
+            # check if this is also really a reference. Progress in
+            # this way until no more ref-attrs are found. I.e. we've
+            # got the actual value at the end of the pointer rainbow.
+            #
+            returned, attribute = result['reference'], result['attribute']
+
+            if returned:
+                returned = resolve_references(
+                        returned,
+                        attribute,
+                        reference_cache['int'],
+                        reference_cache['ext'],
+                )
+
+        elif result['found'] == 'all':
+            # Recover the dict to add and then loop over it in turn
+            # resolving any references.
+            #
+            #print("** ALL: get all content for **\n%s\n" % result['allfrom'])
+
+            returned = resolve_references(
+                result['allfrom'],
+                None,
+                reference_cache['int'],
+                reference_cache['ext'],
+            )
+
+            # Now recurse to create the output dict this attribute should contain.
+            returned = render(
+                returned.items(),
+                # No need to regenerate this, use our one.
+                reference_cache=reference_cache,
+            )
+
+
+        else:
+            # Is this an iterable? If so we need to check each entry to
+            # see if its a ref-attr or all-inc.
+            if hasattr(value, '__iter__') and type(value) != types.DictType:
+                # ignore dicts, this would iterate over the keys which
+                # is not what we want.
+                #
+                # We need to check across the contents of the iterable
+                # and resolve ref-attr or all-inc entries found.
+                returned = []
+                for item in value:
+                    returned.append(hunt_n_resolve(item, reference_cache))
+
+            # Ok, exit.
+            break
+
+        loop_count += 1
+
+    return returned
+
+
+def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, merge=None):
     """Construct the final dictionary after resolving all references to get
     their actual values.
+
+    :param top_level_items: A list of key, value items to use. The value will
+    be checked to see if it needs resolving. If so, the content it points at
+    will be worked out and assigned.
+
+    :param int_refs: A dict of internal references. This can only be None
+    if a pre-calculated reference_cache has been given.
+
+    :param ext_refs: A dict of external references. This can only be None
+    if a pre-calculated reference_cache has been given.
+
+    :param reference_cache: This is the result of an earlier call to
+    build_ref_cache(...). See this function for more details.
+
+    :returns: A single dict representing the combination of all parts
+    after references have been resolved.
+
     """
     returned = {}
     loop_count = 0
 
     # Work out all the references, in effect flattening the
     # references and making lookup faster later on.
-    reference_cache = build_ref_cache(int_refs, ext_refs)
+    if not reference_cache:
+        reference_cache = build_ref_cache(int_refs, ext_refs)
 
-    print("\n\nreference_cache:\n%s\n\n" % pprint.pformat(reference_cache))
+    #print("\n\nreference_cache:\n%s\n\n" % pprint.pformat(reference_cache))
 
-    for reference, attribute in top_level_items:
-        # Add to what is returned. We'll replace the ref-attr shortly:
-        top_ref = reference
-        returned[top_ref] = attribute
+    for top_level_ref, attr_or_ref in top_level_items:
+        returned[top_level_ref] = hunt_n_resolve(attr_or_ref, reference_cache)
 
-        # Hunt for the last non reference-attribute i.e the actual value
-        output = ['','']
-        while is_ref_attr(attribute, output):
-            # Resolve what this reference points at. Then loop to
-            # check if this is also really a reference. Progress in
-            # this way until no more ref-attrs are found. I.e. we've
-            # got the actual value at the end of the pointer rainbow.
-            #
-            reference, attribute = output
+    if merge:
+        # Extend the returned dict with the content from merge.
+        pending = {}
+        for ref, attr_or_ref in merge.items():
+            pending[ref] = hunt_n_resolve(attr_or_ref, reference_cache)
 
-            print("loop_count '%s', reference '%s', attribute: '%s'" %(loop_count, reference, attribute))
-
-            if reference:
-                attribute = resolve_references(
-                        reference,
-                        attribute,
-                        reference_cache['int'],
-                        reference_cache['ext'],
-                )
-
-            loop_count += 1
-
-        # At this point the value is a non ref-attr. I can say this as a
-        # reference or attribute error exceptions would have been raised
-        # otherwise.
-        returned[top_ref] = attribute
+        # Note: no checks for conflicting keys are done!
+        returned.update(pending)
 
     return returned

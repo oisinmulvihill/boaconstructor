@@ -30,7 +30,7 @@ except ImportError:
 
 Name='boaconstructor'
 ProjecUrl=""
-Version='0.1.0'
+Version='0.2.0'
 Author='Oisin Mulvihill'
 AuthorEmail='oisin dot mulvihill a-t gmail d-ot com'
 Maintainer=' Oisin Mulvihill'

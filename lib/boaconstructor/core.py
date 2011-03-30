@@ -98,7 +98,7 @@ class Template(object):
         self.references = references
 
 
-    def render(self, references={}):
+    def render(self, references={}, merge={}):
         """Generate a data dict from this template and any it references.
 
         :param references: this is a dict of string to template
@@ -106,14 +106,22 @@ class Template(object):
         templates. If this is empty self.references will be used
         instead.
 
-        :returns: This returns a 'rendered' dict.
+        :returns: This returns a 'rendered' dict. All references
+        will have been replaced with the value the point at.
 
         """
         return utils.render(
             self.content.items(),
             int_refs=self.references,
             ext_refs=references,
+            merge=merge,
         )
+
+
+    def items(self):
+        """Used in an all-inclusion render to return our contained content dict.
+        """
+        return self.content.items()
 
 
     def __str__(self):
