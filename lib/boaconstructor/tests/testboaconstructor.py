@@ -27,6 +27,63 @@ from boaconstructor import Template
 class BoaConstructor(unittest.TestCase):
 
 
+    def testListsAndTemplateIncludes(self):
+        """Test the 'reference.*' which includes all the content of a template
+        in another and its use in lists.
+
+        """
+
+
+        return
+
+        common = dict(keep='yes', buffer=4096)
+
+        auth = dict(user='bsprocket', secret='11ed394')
+
+        test1 = Template(
+            'test1',
+            dict(
+                port=2394,
+                hostname='bob',
+                user='auth.$.user',
+                password='auth.$.pass',
+            ),
+        )
+
+        # This includes all of test1 as 'host' at render time. The test1
+        # template will also require the auth reference to be made available
+        # in order for it to render without Attribute/Reference Errors.
+        #
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', keep='com.$.keep'),
+            references=dict(com=common),
+        )
+
+        # simulate only known authentication details at run/render time:
+        result = test2.render(dict(
+            auth=auth,
+        ))
+
+        correct = dict(
+            host=dict(port=2394,hostname='bob',user='bsprocket',password='11ed394'),
+            hostname='bob',
+            keep='yes'
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+
     def testRender(self):
         """Test the utils module render which is used by the Template class.
         """
@@ -343,23 +400,36 @@ correct:
         """
         # Test entries that are not reference-attribute values:
         #
-        non_ras = [
+        ignore = [
             1, None, '1', '', 'bob', object(), 'abc.efg', 1.02,
-            Exception, dir(), "abc$efg", "abc$.efg", "abc.$efg"
+            Exception, dir(), "abc$efg", "abc$.efg", "abc.$efg",
+            'bob*','bob.', '.*', 'abc.*.stuff'
         ]
-        for value in non_ras:
-            correct = ['','']
+        for value in ignore:
+            correct = dict(found=None,reference='',attribute='',allfrom='')
             result = utils.parse_value(value)
             self.assertEquals(result, correct)
 
         # Now check the recovery of valid reference-attributes:
         value = 'abc.$.efg'
-        correct = ['abc','efg']
+        correct = dict(found='refatt',reference='abc',attribute='efg',allfrom='')
         result = utils.parse_value(value)
         self.assertEquals(result, correct)
 
         value = 'settings.host.$.timeout'
-        correct = ['settings.host','timeout']
+        correct = dict(found='refatt',reference='settings.host',attribute='timeout',allfrom='')
+        result = utils.parse_value(value)
+        self.assertEquals(result, correct)
+
+        # Now try all inclusion entries:
+        #
+        value = 'settings.host.*'
+        correct = dict(found='all',reference='',attribute='',allfrom='settings.host')
+        result = utils.parse_value(value)
+        self.assertEquals(result, correct)
+
+        value = 'abc.*'
+        correct = dict(found='all',reference='',attribute='',allfrom='abc')
         result = utils.parse_value(value)
         self.assertEquals(result, correct)
 

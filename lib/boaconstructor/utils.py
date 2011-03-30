@@ -15,56 +15,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
+import re
 import types
 import pprint
 
 
-import core
+# Reference-Attribute recovery <reference>.$.<attribute>
+REFATT_RE = re.compile(r"(?P<ref>.*)(?P<refatt>\.\$\.)(?P<attr>.*)")
+
+# All-Inclusion recovery <allfrom>.*
+ALLINC_RE = re.compile(r"^(?P<allfrom>.*)(?P<all>\.\*)$")
 
 
-# The default string marker either side of which is the reference and attribute.
-REFATT_MARKER = '.$.'
+def parse_value(value):
+    """Recover the ref-attr or the all-inclusion if present.
 
+    :returns: The results of parsing the given value string.
 
-def is_ref_attr(value, output=['',''], marker=REFATT_MARKER):
-    """Test if the given value is a reference-attribute."""
-    returned = False
+        dict(
+            found='refatt' or 'all' or None
+            reference='' or '<reference string recovered>'
+            attribute='' or '<attribute string recovered>'
+            allfrom='' or '<all inclusion string recovered>'
+        )
+
+    """
+    returned = dict(found=None,reference='',attribute='',allfrom='')
 
     if type(value) in types.StringTypes:
         # Only bother with strings, ignore everything else.
-#        print("value: '%s'" % value)
-        out = value.split(marker)
-        # two items and they are actually something
-        if len(out) == 2:
-            if out[0] and out[1]:
-                returned = True
-                output[0] = out[0]
-                output[1] = out[1]
+        print "value to parse: '%s'." % value
 
-    return returned
+        if value.strip() == '.*':
+            # ignore empty .* inclusion
+            return returned
 
+        refatt_result = re.search(REFATT_RE, value)
+        allinc_result = re.search(ALLINC_RE, value)
 
-def parse_value(value, marker=REFATT_MARKER):
-    """Recover the reference-attribute from the given value.
+        if refatt_result:
+            found = refatt_result.groupdict()
+            print "found: '%s'" % pprint.pformat(found)
+            print "groups", refatt_result.groups()
 
-    :param value: This is a string in the form "<reference>.$.<attribute>".
-    The ".$." in the string makes this a reference-attribute. Only strings
-    are looked at. All other types are ignored.
+            returned['found'] = 'refatt'
+            returned['reference'] = found.get('ref')
+            returned['attribute'] = found.get('attr')
 
-    :param marker: This is the default '.$.' string on either side of
-    which the reference and attribute will be found. It can be changed if
-    needed.
+        if allinc_result:
+            found = allinc_result.groupdict()
+            print "found: '%s'" % pprint.pformat(found)
+            print "groups", allinc_result.groups()
 
-    :returns: (reference, attribute)
-
-        If the val is not a reference-attribute then ('', '') is returned.
-        Otherwise ('<reference>', '<attribute>') strings are returned.
-
-    """
-    returned = ['','']
-
-    # Called like this: returned is set up if the value is a ref-attr
-    is_ref_attr(value, returned, marker=marker)
+            returned['found'] = 'all'
+            returned['allfrom'] = found.get('allfrom')
 
     return returned
 
