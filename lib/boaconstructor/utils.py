@@ -347,7 +347,7 @@ def hunt_n_resolve(value, reference_cache):
     return returned
 
 
-def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, merge=None):
+def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, extendwith=None):
     """Construct the final dictionary after resolving all references to get
     their actual values.
 
@@ -363,6 +363,11 @@ def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, 
 
     :param reference_cache: This is the result of an earlier call to
     build_ref_cache(...). See this function for more details.
+
+    :param extendwith: This is a dict / template to render and then add to
+    the one we've just rendered template. This will use the rendered
+    dict's update(). The main template we are render will overwrite any
+    common keys. This is used for a generic template and specific templates.
 
     :returns: A single dict representing the combination of all parts
     after references have been resolved.
@@ -381,13 +386,16 @@ def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, 
     for top_level_ref, attr_or_ref in top_level_items:
         returned[top_level_ref] = hunt_n_resolve(attr_or_ref, reference_cache)
 
-    if merge:
-        # Extend the returned dict with the content from merge.
+    if extendwith:
+        # Extend the returned dict with the content from extendwith, after it
+        # goes through the resolve process.
         pending = {}
-        for ref, attr_or_ref in merge.items():
+        for ref, attr_or_ref in extendwith.items():
             pending[ref] = hunt_n_resolve(attr_or_ref, reference_cache)
 
-        # Note: no checks for conflicting keys are done!
-        returned.update(pending)
+        # Overwrite the rendered extendwith with values from the main template
+        # (if there are any shared keys).
+        pending.update(returned)
+        returned = pending
 
     return returned

@@ -98,13 +98,17 @@ class Template(object):
         self.references = references
 
 
-    def render(self, references={}, merge={}):
+    def render(self, references={}, extendwith={}):
         """Generate a data dict from this template and any it references.
 
         :param references: this is a dict of string to template
         mappings. This is used to resolve references to other
         templates. If this is empty self.references will be used
         instead.
+
+        :param extendwith: This is the template to render and then add to
+        this one. This will use the rendered dict's update(). This template
+        will overwrite any common keys in the rendered extendwith.
 
         :returns: This returns a 'rendered' dict. All references
         will have been replaced with the value the point at.
@@ -114,7 +118,7 @@ class Template(object):
             self.content.items(),
             int_refs=self.references,
             ext_refs=references,
-            merge=merge,
+            extendwith=extendwith,
         )
 
 

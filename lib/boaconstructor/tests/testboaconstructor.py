@@ -27,18 +27,23 @@ from boaconstructor import Template
 class BoaConstructor(unittest.TestCase):
 
 
-    def testAllInclusionDictKeyExpansion(self):
-        """
+    def testTemplateExtending(self):
+        """Test using the render extend argument.
         """
         common = dict(buffer=4096)
 
-        auth = dict(user='james', secret='11ed394')
+        auth = dict(target='<to replace by test1>', user='james', secret='11ed394')
 
         test1 = Template(
             'test1',
             {
+                # This will overwrite the place holder in auth 'target'
+                'target': 'production',
+
                 'system':'Live00',
                 'recv': 'common.$.buffer',
+
+                # The rest of auth will end up here
             },
         )
 
@@ -49,10 +54,11 @@ class BoaConstructor(unittest.TestCase):
             # Extend the rendered dict with all the resolve key,values
             # from the given dict. It will also be processed using the
             # references:
-            merge=auth,
+            extendwith=auth,
         )
 
         correct = dict(
+            target='production',
             system='Live00',
             recv=4096,
             user='james',
