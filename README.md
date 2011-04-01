@@ -23,7 +23,7 @@ Links
 
 Source Code:
 
-  * GitHub: <a href="https://github.com/oisinmulvihill/boaconstructor">href="https://github.com/oisinmulvihill/boaconstructor</a>
+  * GitHub: <a href="https://github.com/oisinmulvihill/boaconstructor">https://github.com/oisinmulvihill/boaconstructor</a>
 
 Documentation:
  
