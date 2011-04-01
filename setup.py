@@ -20,6 +20,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 """
+import sys
+
 try:
     from setuptools import setup, find_packages
 except ImportError:
@@ -28,13 +30,18 @@ except ImportError:
     from setuptools import setup, find_packages
 
 
+# Force finding lib version first:
+sys.path.insert(0, './lib')
+import boaconstructor
+
+
 Name='boaconstructor'
-ProjecUrl=""
-Version='0.2.0'
+ProjecUrl="http://pypi.python.org/pypi/boaconstructor"
+Version=boaconstructor.__version__
 Author='Oisin Mulvihill'
 AuthorEmail='oisin dot mulvihill a-t gmail d-ot com'
 Maintainer=' Oisin Mulvihill'
-Summary='Templating for dictionaries.'
+Summary='The boacontructor is a templating library for *data*, i.e. templating for dictionaries.'
 License='Apache License v2.0'
 ShortDescription=Summary
 Description=r"""The boacontructor is a templating library for *data*.
@@ -42,8 +49,10 @@ Description=r"""The boacontructor is a templating library for *data*.
 It allows you to construct Python dictionaries from other templates,
 dictionaries or instances.
 
+
 Source code is available on github:
   * https://github.com/oisinmulvihill/boaconstructor
+
 
 Documentation is available here:
   * http://packages.python.org/boaconstructor
