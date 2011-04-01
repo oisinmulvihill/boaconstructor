@@ -1,34 +1,33 @@
 """
+.. module::`core`
+    :platform: Unix, Windows
+    :synopsis: Provides the high level Template class.
 
-Copyright 2011 Oisin Mulvihill
+.. autoclass:: TemplateError
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+.. autoclass:: Template
 
 """
+__all__ = ['TemplateError', 'Template']
+
 import types
 
-import utils
+from boaconstructor import utils
+
+
+
 
 class TemplateError(Exception):
     """Raised for problems render or otherwise processing templates."""
 
 
 class Template(object):
-    """
-    Template represents a dict which may or may not refer to data from
+    """Template represents a dict which may or may not refer to data from
     other dicts.
 
     Example:
+
+    .. code-block:: python
 
         # Data to be used in host1 and host2
         common = Template('common', {
@@ -66,16 +65,17 @@ class Template(object):
         {"host":"1.2.3.4","flag":True,"timeout":42}
 
     Notes:
+
       * A template refence is a dictionary value string containing ".$.". It
-        has the format:
+        has the format::
 
-            "<template reference>.$.<attribute from template's content>".
+        "<template reference>.$.<attribute from template's content>".
 
-      * The references can be given to the constructor or at render
-        time. If both are given the render version is used.
+      * The references can be given to the constructor or at render time. If
+        both are given the render version is used.
 
-      * In host2.render(...) above the reference 'host' was
-        used as an alias to 'host1'.
+      * In host2.render(...) above the reference 'host' was used as an alias to
+        'host1'.
 
     """
     def __init__(self, name, content, references={}):
@@ -101,17 +101,21 @@ class Template(object):
     def render(self, references={}, extendwith={}):
         """Generate a data dict from this template and any it references.
 
-        :param references: this is a dict of string to template
-        mappings. This is used to resolve references to other
-        templates. If this is empty self.references will be used
-        instead.
+        :param references: this is a dict of string to template mappings.
 
-        :param extendwith: This is the template to render and then add to
-        this one. This will use the rendered dict's update(). This template
-        will overwrite any common keys in the rendered extendwith.
+        This is used to resolve references to other templates. If this is empty
+        self.references will be used instead.
 
-        :returns: This returns a 'rendered' dict. All references
-        will have been replaced with the value the point at.
+
+        :param extendwith: This is the template to render and then add to this one.
+
+        This will use the rendered dict's update(). This template will overwrite
+        any common keys in the rendered extendwith.
+
+
+        :returns: This returns a 'rendered' dict.
+
+        All references  will have been replaced with the value the point at.
 
         """
         return utils.render(
@@ -129,8 +133,12 @@ class Template(object):
 
 
     def __str__(self):
+        """Show a string version of the content dict we hold.
+        """
         return str(self.content)
 
 
     def __repr__(self):
+        """Show the template name and content we hold.
+        """
         return "'Template <%s>: %s'" % (self.name, self.content)

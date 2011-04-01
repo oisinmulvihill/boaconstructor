@@ -37,12 +37,18 @@ Maintainer=' Oisin Mulvihill'
 Summary='Templating for dictionaries.'
 License='Apache License v2.0'
 ShortDescription=Summary
-Description=(
-    "The boacontructor is a templating library for *data*. It allows you to "
-    "construct Python dictionaries from other templates, dictionaries or "
-    "instances. \n"
-    "Source code is available on github: https://github.com/oisinmulvihill/boaconstructor"
-)
+Description=r"""The boacontructor is a templating library for *data*.
+
+It allows you to construct Python dictionaries from other templates,
+dictionaries or instances.
+
+Source code is available on github:
+  * https://github.com/oisinmulvihill/boaconstructor
+
+Documentation is available here:
+  * http://packages.python.org/boaconstructor
+
+"""
 
 TestSuite = 'boaconstructor.tests'
 

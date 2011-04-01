@@ -1,20 +1,57 @@
 """
+.. module::`utils`
+    :platform: Unix, Windows
+    :synopsis: Provides the functions that boaconstructor Template relies on.
 
-Copyright 2011 Oisin Mulvihill
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Exceptions
+++++++++++
 
-   http://www.apache.org/licenses/LICENSE-2.0
+.. autoclass:: ReferenceError
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+.. autoclass:: AttributeError
+
+render
+++++++
+
+.. autofunction:: render
+
+parse_value
++++++++++++
+
+.. autofunction:: parse_value
+
+resolve_references
+++++++++++++++++++
+
+.. autofunction:: resolve_references
+
+build_ref_cache
++++++++++++++++
+
+.. autofunction:: build_ref_cache
+
+hunt_n_resolve
+++++++++++++++
+
+.. autofunction:: hunt_n_resolve
+
+has
++++
+
+.. autofunction:: has
+
+get
++++
+
+.. autofunction:: get
 
 """
+__all__ = [
+    'parse_value', 'ReferenceError', 'AttributeError', 'has', 'get',
+    'resolve_references', 'build_ref_cache', 'hunt_n_resolve', 'render',
+]
+
 import re
 import types
 import pprint
@@ -31,6 +68,10 @@ def parse_value(value):
     """Recover the ref-attr or the all-inclusion if present.
 
     :returns: The results of parsing the given value string.
+
+    This is a dict in the form:
+
+    .. code-block:: python
 
         dict(
             found='refatt' or 'all' or None
@@ -86,8 +127,7 @@ def has(reference, attribute):
 
     :param reference: A dict, Template instance or a object instance.
 
-    :param attribute: A string representing the key/member variable
-    to recover.
+    :param attribute: A string representing the key/member variable to recover.
 
     :returns: True yes, False no.
 
@@ -110,16 +150,13 @@ def has(reference, attribute):
 
 
 def get(reference, attribute):
-    """Get the attribute value from the given dict, object instance or Template
-    instance.
+    """Get the attribute value from the given dict, object instance or Template instance.
 
     :param reference: A dict, Template instance or a object instance.
 
-    :param attribute: A string representing the key/member variable
-    to recover.
+    :param attribute: A string representing the key/member variable to recover.
 
-    :returns: The value found. If nothing could be recovered then
-    AttributeError will be raised.
+    :returns: The value found. If nothing could be recovered then AttributeError will be raised.
 
     """
     found = False
@@ -152,27 +189,25 @@ def get(reference, attribute):
 
 
 def resolve_references(reference, attribute, int_references, ext_references={}):
-    """Work out the attribute value for a reference from the internal or
-    external references.
+    """Work out the attribute value for a reference from the internal or external references.
 
     This is usually call by the Template.resolve method.
 
-    :param reference: This is the <reference> string recovered
-    from a call to parse_value.
+    :param reference: This is the <reference> string recovered from a call to parse_value.
 
-    :param attribute: This is the dict key we must look up in the
-    references. This is the <attribute> recovered from a call to
-    parse_value. If this is None then only the reference will be
-    resolved. What it points at will then be returned.
+    :param attribute: This is the dict key we must look up in the references.
 
-    :param int_references: This the reference dict usually representing the
-    reference stored as a member of the Template class.
+    This is the <attribute> recovered from a call to parse_value. If this is
+    None then only the reference will be resolved. What it points at will then
+    be returned.
 
-    :param ext_references: This the reference dict usually representing the
-    reference given as an argument to render.
+    :param int_references: This the reference dict usually representing the reference stored as a member of the Template class.
 
-    The ext_references is given priority over the int_references. If a
-    reference-attribute is found, then int_references will not be consulted.
+    :param ext_references: This the reference dict usually representing the reference given as an argument to render.
+
+    The ext_references is given priority over the int_references.
+
+    If a reference-attribute is found, then int_references will not be consulted.
 
     If the reference is not found in int_references or ext_references then
     ReferenceError will be raised.
@@ -240,7 +275,9 @@ def build_ref_cache(int_refs, ext_refs):
 
     :param ext_refs: a dict of 'dicts and/or Template' instances.
 
-    :returns: a dict with the results in the form
+    :returns: a dict with the results in the form:
+
+    .. code-block:: python
 
         results = {
             'int':{ ... },
@@ -271,9 +308,9 @@ def build_ref_cache(int_refs, ext_refs):
 def hunt_n_resolve(value, reference_cache):
     """Resolve a single attribute using the given reference_cache.
 
-    :returns: The value the attribute points at, if it
-    is was a reference. Other the value is passed through
-    unprocessed.
+    :returns: The value the attribute points at.
+
+    If the value is not an attribute it is passed through unprocessed.
 
     """
     # Hunt for the last non reference-attribute i.e the actual value
@@ -348,29 +385,30 @@ def hunt_n_resolve(value, reference_cache):
 
 
 def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, extendwith=None):
-    """Construct the final dictionary after resolving all references to get
-    their actual values.
+    """Construct the final dictionary after resolving all references to get their actual values.
 
-    :param top_level_items: A list of key, value items to use. The value will
-    be checked to see if it needs resolving. If so, the content it points at
-    will be worked out and assigned.
+    :param top_level_items: A list of key, value items to use.
 
-    :param int_refs: A dict of internal references. This can only be None
-    if a pre-calculated reference_cache has been given.
+    The value will be checked to see if it needs resolving. If so, the content
+    it points at will be worked out and assigned.
 
-    :param ext_refs: A dict of external references. This can only be None
-    if a pre-calculated reference_cache has been given.
+    :param int_refs: A dict of internal references.
 
-    :param reference_cache: This is the result of an earlier call to
-    build_ref_cache(...). See this function for more details.
+    This can only be None if a pre-calculated reference_cache has been given.
 
-    :param extendwith: This is a dict / template to render and then add to
-    the one we've just rendered template. This will use the rendered
-    dict's update(). The main template we are render will overwrite any
-    common keys. This is used for a generic template and specific templates.
+    :param ext_refs: A dict of external references.
 
-    :returns: A single dict representing the combination of all parts
-    after references have been resolved.
+    This can only be None if a pre-calculated reference_cache has been given.
+
+    :param reference_cache: This is the result of a call to :py:func:`build_ref_cache`.
+
+    :param extendwith: This is a template to render and add to the one we've just rendered template.
+
+    This will use the rendered dict's update(). The main template we are render
+    will overwrite any common keys. This is used for a generic template and
+    specific templates.
+
+    :returns: A single dict representing the combination of all parts after references have been resolved.
 
     """
     returned = {}

@@ -1,18 +1,28 @@
 """
+.. module::`boaconstructor`
+    :platform: Unix, Windows
+    :synopsis: boacontructor is a templating library for *data*.
 
-Copyright 2011 Oisin Mulvihill
+The Template class
+------------------
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This is the high level class most commonly used.
 
-   http://www.apache.org/licenses/LICENSE-2.0
+.. autoclass:: Template
+    :members:
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+
+The utils module
+----------------
+
+The :py:class:`Template` class wraps the functionality hiding most of the
+details of this module.
+
+.. automodule:: boaconstructor.utils
 
 """
-from core import *
+import utils
+import core
+
+from core import Template
+from core import TemplateError
