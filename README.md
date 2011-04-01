@@ -22,13 +22,16 @@ Links
 -----
 
 Source Code:
- * GitHub: <a href="https://github.com/oisinmulvihill/boaconstructor">href="https://github.com/oisinmulvihill/boaconstructor</a>
+
+  * GitHub: <a href="https://github.com/oisinmulvihill/boaconstructor">href="https://github.com/oisinmulvihill/boaconstructor</a>
 
 Documentation:
- * <a href="http://packages.python.org/boaconstructor">http://packages.python.org/boaconstructor/</a>
+ 
+  * <a href="http://packages.python.org/boaconstructor">http://packages.python.org/boaconstructor/</a>
 
 Python Package Index:
- * <a href="http://pypi.python.org/pypi/boaconstructor">http://pypi.python.org/pypi/boaconstructor</a>
+ 
+  * <a href="http://pypi.python.org/pypi/boaconstructor">http://pypi.python.org/pypi/boaconstructor</a>
 
 
 What is it?
