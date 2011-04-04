@@ -57,6 +57,52 @@ Source code is available on github:
 Documentation is available here:
   * http://packages.python.org/boaconstructor
 
+An Example
+----------
+
+I'll let the code and comments do the talking::
+
+    from boaconstructor import Template
+
+    # Some shared information in a dict. This could also be a class instance
+    # or something else that supports getattr and hasattr.
+    #
+    common = dict(
+        timeout = 30,
+        email = "admin@example.com"
+    )
+
+    # This is a template created in a module. You need one of these. I pass in
+    # references that are available at this stage. The 'host.$.name' I will pass
+    # in at render time.
+    #
+    webserver_data = Template('webserver',
+        dict(
+            interface = 'host.$.name',
+            port = 32189,
+            timeout = 'common.$.timeout',
+            alert_email = 'common.$.email',
+        ),
+        # This is uses common as an 'internal' reference
+        references={'common':common}
+    )
+
+    # At run time I can pass 'external' references to resolve the hostnames.
+    # Maybe I got these from a database or some other source.
+    #
+    machine_1 = webserver_data.render({'host': {'name': 'myserver1'}}),
+    # {'alert_email': 'admin@example.com', 'interface': 'myserver1', 'port': 32189, 'timeout': 30}
+
+    machine_2 = webserver_data.render({'host': {'name': 'myserver2'}}),
+    # {'alert_email': 'admin@example.com', 'interface': 'myserver2', 'port': 32189, 'timeout': 30}
+
+
+    # Now I can pass these to Cheetah/Mako/etc to render a specific type of
+    # XML/INI/Text configuration files.
+
+
+
+
 """
 
 TestSuite = 'boaconstructor.tests'
