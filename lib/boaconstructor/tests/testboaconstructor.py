@@ -183,6 +183,34 @@ correct:
         self.assertEquals(result, correct, err_msg)
 
 
+    def testReferencePreview(self):
+        """Test
+        """
+        from boaconstructor.utils import what_is_required
+
+        test1 = dict(
+            options='common.*',
+            usernames=['peter.$.username','graham.$.username'],
+            users=['peter.*', 'graham.*'],
+        )
+
+        correct = {'common':1, 'peter':1, "graham":1}
+
+
+        rendered, result = what_is_required(test1.items(), {}, {})
+
+        err_msg = """result != correct
+
+result:
+<%s>
+
+correct:
+<%s>
+
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
 
     def testRender(self):
         """Test the utils module render which is used by the Template class.

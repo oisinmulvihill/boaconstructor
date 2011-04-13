@@ -50,6 +50,7 @@ get
 __all__ = [
     'parse_value', 'ReferenceError', 'AttributeError', 'has', 'get',
     'resolve_references', 'build_ref_cache', 'hunt_n_resolve', 'render',
+    'what_is_required',
 ]
 
 import re
@@ -115,11 +116,21 @@ def parse_value(value):
 
 
 class ReferenceError(Exception):
-    """Raised when a reference name could not found in references given."""
+    """Raised when a reference name could not found in references given.
+
+    """
+    def __init__(self, msg, ref, *args):
+        self.message = msg
+        self.reference = ref
 
 
 class AttributeError(Exception):
-    """Raised when an attribute was not found for the references given."""
+    """Raised when an attribute was not found for the references given.
+
+    """
+    def __init__(self, msg, attr, *args):
+        self.message = msg
+        self.attribute = attr
 
 
 def has(reference, attribute):
@@ -226,7 +237,7 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
     ref_present = reference in ext_references or reference in int_references
     if not ref_present:
         # The reference is not present at all, abandon.
-        raise ReferenceError("The reference '%s' could not be resolved!" % reference)
+        raise ReferenceError("The reference '%s' could not be resolved!" % reference, reference)
 
     # Look for the attribute in the ext_references:
     ext_result = None
@@ -259,7 +270,7 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
             returned = get(r, attribute)
 
     if not found:
-        raise AttributeError("The attribute '%s' in any reference!" % attribute)
+        raise AttributeError("The attribute '%s' in any reference!" % attribute, attribute)
 
     return returned
 
@@ -305,7 +316,7 @@ def build_ref_cache(int_refs, ext_refs):
     return reference_cache
 
 
-def hunt_n_resolve(value, reference_cache):
+def hunt_n_resolve(value, reference_cache, find_required=False):
     """Resolve a single attribute using the given reference_cache.
 
     :returns: The value the attribute points at.
@@ -316,8 +327,9 @@ def hunt_n_resolve(value, reference_cache):
     # Hunt for the last non reference-attribute i.e the actual value
     loop_count = 0
     returned = value
+    required = []
 
-    # Prevent looping forever on problems:
+    # Prevent looping forever on problems (shouldn't tests show this isn't needed?):
     retries = 20
     while retries:
         retries -= 1
@@ -333,34 +345,58 @@ def hunt_n_resolve(value, reference_cache):
             # got the actual value at the end of the pointer rainbow.
             #
             returned, attribute = result['reference'], result['attribute']
-
             if returned:
-                returned = resolve_references(
-                        returned,
-                        attribute,
-                        reference_cache['int'],
-                        reference_cache['ext'],
-                )
+                try:
+                    returned = resolve_references(
+                            returned,
+                            attribute,
+                            reference_cache['int'],
+                            reference_cache['ext'],
+                    )
+                except ReferenceError, e:
+                    if find_required:
+                        required.append(e.reference)
+                    else:
+                        raise
+                except AttributeError, e:
+                    if find_required:
+                        required.append(e.attribute)
+                    else:
+                        raise
+
 
         elif result['found'] == 'all':
             # Recover the dict to add and then loop over it in turn
             # resolving any references.
             #
             #print("** ALL: get all content for **\n%s\n" % result['allfrom'])
+            try:
+                returned = resolve_references(
+                    result['allfrom'],
+                    None,
+                    reference_cache['int'],
+                    reference_cache['ext'],
+                )
 
-            returned = resolve_references(
-                result['allfrom'],
-                None,
-                reference_cache['int'],
-                reference_cache['ext'],
-            )
+            except ReferenceError, e:
+                if find_required:
+                    required.append(e.reference)
+                else:
+                    raise
 
-            # Now recurse to create the output dict this attribute should contain.
-            returned = render(
-                returned.items(),
-                # No need to regenerate this, use our one.
-                reference_cache=reference_cache,
-            )
+            except AttributeError, e:
+                if find_required:
+                    required.append(e.attribute)
+                else:
+                    raise
+
+            else:
+                # Now recurse to create the output dict this attribute should contain.
+                returned = render(
+                    returned.items(),
+                    # No need to regenerate this, use our one.
+                    reference_cache=reference_cache,
+                )
 
 
         else:
@@ -374,14 +410,47 @@ def hunt_n_resolve(value, reference_cache):
                 # and resolve ref-attr or all-inc entries found.
                 returned = []
                 for item in value:
-                    returned.append(hunt_n_resolve(item, reference_cache))
+                    rc = hunt_n_resolve(item, reference_cache, find_required=find_required)
+                    if not find_required:
+                        returned.append(rc)
+
+                    else:
+                        returned.append(rc[0])
+                        required.append((item, rc[1]))
+
 
             # Ok, exit.
             break
 
         loop_count += 1
 
+    if find_required:
+        returned = (returned, required)
+
     return returned
+
+
+def what_is_required(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, extendwith=None):
+    """Like render but it also returns dependancies
+    """
+    returned = {}
+    top_required = []
+
+    # Work out all the references, in effect flattening the
+    # references and making lookup faster later on.
+    if not reference_cache:
+        reference_cache = build_ref_cache(int_refs, ext_refs)
+
+    #print("\n\nreference_cache:\n%s\n\n" % pprint.pformat(reference_cache))
+    find_required = True
+
+    for top_level_ref, attr_or_ref in top_level_items:
+        item, required = hunt_n_resolve(attr_or_ref,reference_cache,find_required)
+
+        returned[top_level_ref] = item
+        top_required.append((attr_or_ref, required))
+
+    return (returned, top_required)
 
 
 def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, extendwith=None):
@@ -412,7 +481,6 @@ def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, 
 
     """
     returned = {}
-    loop_count = 0
 
     # Work out all the references, in effect flattening the
     # references and making lookup faster later on.

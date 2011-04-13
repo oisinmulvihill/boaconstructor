@@ -92,8 +92,10 @@ class Template(object):
 
         """
         self.name = name
+
         if type(content) != types.DictType:
             raise TemplateError("The content given is not a Dict!")
+            
         self.content = content
         self.references = references
 
