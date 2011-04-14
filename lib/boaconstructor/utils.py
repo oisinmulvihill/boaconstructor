@@ -36,6 +36,13 @@ hunt_n_resolve
 
 .. autofunction:: hunt_n_resolve
 
+
+what_is_required
+++++++++++++++++
+
+.. autofunction:: what_is_required
+
+
 has
 +++
 
@@ -122,6 +129,7 @@ class ReferenceError(Exception):
     def __init__(self, msg, ref, *args):
         self.message = msg
         self.reference = ref
+        self.args = [msg,]
 
 
 class AttributeError(Exception):
@@ -131,6 +139,7 @@ class AttributeError(Exception):
     def __init__(self, msg, attr, *args):
         self.message = msg
         self.attribute = attr
+        self.args = [msg,]
 
 
 def has(reference, attribute):
@@ -316,7 +325,7 @@ def build_ref_cache(int_refs, ext_refs):
     return reference_cache
 
 
-def hunt_n_resolve(value, reference_cache, find_required=False):
+def hunt_n_resolve(value, reference_cache):
     """Resolve a single attribute using the given reference_cache.
 
     :returns: The value the attribute points at.
@@ -327,14 +336,13 @@ def hunt_n_resolve(value, reference_cache, find_required=False):
     # Hunt for the last non reference-attribute i.e the actual value
     loop_count = 0
     returned = value
-    required = []
 
     # Prevent looping forever on problems (shouldn't tests show this isn't needed?):
-    retries = 20
-    while retries:
-        retries -= 1
-
-        #print("loop_count '%s', value: '%s'" %(loop_count, value))
+    #retries = 20
+    #while retries:
+    while True:
+        #retries -= 1
+        #print("loop_count '%s', value: '%s' returned: '%s'" %(loop_count, value, returned))
 
         result = parse_value(returned)
 
@@ -346,23 +354,12 @@ def hunt_n_resolve(value, reference_cache, find_required=False):
             #
             returned, attribute = result['reference'], result['attribute']
             if returned:
-                try:
-                    returned = resolve_references(
-                            returned,
-                            attribute,
-                            reference_cache['int'],
-                            reference_cache['ext'],
-                    )
-                except ReferenceError, e:
-                    if find_required:
-                        required.append(e.reference)
-                    else:
-                        raise
-                except AttributeError, e:
-                    if find_required:
-                        required.append(e.attribute)
-                    else:
-                        raise
+                returned = resolve_references(
+                        returned,
+                        attribute,
+                        reference_cache['int'],
+                        reference_cache['ext'],
+                )
 
 
         elif result['found'] == 'all':
@@ -370,33 +367,27 @@ def hunt_n_resolve(value, reference_cache, find_required=False):
             # resolving any references.
             #
             #print("** ALL: get all content for **\n%s\n" % result['allfrom'])
-            try:
-                returned = resolve_references(
-                    result['allfrom'],
-                    None,
-                    reference_cache['int'],
-                    reference_cache['ext'],
-                )
+            returned = resolve_references(
+                result['allfrom'],
+                None,
+                reference_cache['int'],
+                reference_cache['ext'],
+            )
 
-            except ReferenceError, e:
-                if find_required:
-                    required.append(e.reference)
-                else:
-                    raise
+            # Now recurse to create the output dict this attribute should contain.
+            print "result['allfrom'] <%s>, returned <%s> type <%s>" % (
+                result['allfrom'], returned, type(returned)
+            )
 
-            except AttributeError, e:
-                if find_required:
-                    required.append(e.attribute)
-                else:
-                    raise
-
-            else:
-                # Now recurse to create the output dict this attribute should contain.
+            if hasattr(returned, 'items'):
                 returned = render(
                     returned.items(),
                     # No need to regenerate this, use our one.
                     reference_cache=reference_cache,
                 )
+
+            else:
+                returned = "<error rendering '%s' - '%s'>" % (result['allfrom'], returned)
 
 
         else:
@@ -410,47 +401,78 @@ def hunt_n_resolve(value, reference_cache, find_required=False):
                 # and resolve ref-attr or all-inc entries found.
                 returned = []
                 for item in value:
-                    rc = hunt_n_resolve(item, reference_cache, find_required=find_required)
-                    if not find_required:
-                        returned.append(rc)
-
-                    else:
-                        returned.append(rc[0])
-                        required.append((item, rc[1]))
-
+                    returned.append(hunt_n_resolve(item, reference_cache))
 
             # Ok, exit.
             break
 
         loop_count += 1
 
-    if find_required:
-        returned = (returned, required)
-
     return returned
 
 
-def what_is_required(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, extendwith=None):
-    """Like render but it also returns dependancies
+def what_is_required(template):
+    """Recover the top-level references the given template requires.
+
+    :para template: This is a dict / template or something
+    that provides the items() method, returning a list of
+    (key, value) pairs.
+
+    Aliases are not resolved. This is purley the references
+    mentioned in the dict structure.
+
+    This does not scan internal / external references the
+    template may provides. It only goes through the dict
+    values checking for ref-attr or allinc. If the value
+    found is a list, it will recurse look through it too.
+
+    :returns: This is a dict whose keys are the references
+    found. For example:
+
+    .. source:: python
+
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', stuff=['com.$.keep', ["frank.*",]]),
+        )
+
+        result = what_is_required(test2)
+
+        print result
+        {'test1':1, 'com':1, "frank":1}
+
     """
-    returned = {}
-    top_required = []
+    required = {}
 
-    # Work out all the references, in effect flattening the
-    # references and making lookup faster later on.
-    if not reference_cache:
-        reference_cache = build_ref_cache(int_refs, ext_refs)
+    def list_recurse(items):
+        for item in items:
+            result = parse_value(item)
+            if result['found'] == 'refatt':
+                required[result['reference']] = 1
 
-    #print("\n\nreference_cache:\n%s\n\n" % pprint.pformat(reference_cache))
-    find_required = True
+            elif result['found'] == 'all':
+                required[result['allfrom']] = 1
 
-    for top_level_ref, attr_or_ref in top_level_items:
-        item, required = hunt_n_resolve(attr_or_ref,reference_cache,find_required)
+            else:
+                if hasattr(item, '__iter__') and type(item) != types.DictType:
+                    list_recurse(item)
 
-        returned[top_level_ref] = item
-        top_required.append((attr_or_ref, required))
+    for top_level_ref, attr_or_ref in template.items():
+        result = parse_value(attr_or_ref)
 
-    return (returned, top_required)
+        if result['found'] == 'refatt':
+            required[result['reference']] = 1
+
+        elif result['found'] == 'all':
+            required[result['allfrom']] = 1
+
+        else:
+            # Is this an iterable? If so we need to check each entry to
+            # see if its a ref-attr or all-inc.
+            if hasattr(attr_or_ref, '__iter__') and type(attr_or_ref) != types.DictType:
+                list_recurse(attr_or_ref)
+
+    return required
 
 
 def render(top_level_items, int_refs=None, ext_refs=None, reference_cache=None, extendwith=None):

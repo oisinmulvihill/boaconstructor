@@ -22,9 +22,120 @@ import unittest
 import boaconstructor
 from boaconstructor import utils
 from boaconstructor import Template
+from boaconstructor.utils import what_is_required
+
 
 
 class BoaConstructor(unittest.TestCase):
+
+
+    def testAllInclusionOnNonDicts(self):
+        """
+        """
+        common = u"some text"
+
+        test1 = Template(
+            'test1',
+            {
+                'description': 'common.*',
+                'count' : 'count.*',
+                'data': 'data.$.a'
+            },
+        )
+
+        result = test1.render(
+            dict(
+                common='',
+                count=10,
+                data=dict(a=1)
+            ),
+        )
+
+        correct = dict(
+            common='some text',
+            count=10,
+            data=1,
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+
+    def testReferencePreview(self):
+        """Test that the top-level references the template need are highlighted
+        by what_is_required.
+
+        """
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', keep='com.$.keep', value="frank.*"),
+        )
+
+        correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Try with a list of ref-attr / all inc
+        #
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', stuff=['com.$.keep', "frank.*"]),
+        )
+
+        correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Try with a nested list
+        #
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', stuff=['com.$.keep', ["frank.*",]]),
+        )
+
+        correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
 
 
     def testTemplateExtending(self):
@@ -32,7 +143,7 @@ class BoaConstructor(unittest.TestCase):
         """
         common = dict(buffer=4096)
 
-        auth = dict(target='<to replace by test1>', user='james', secret='11ed394')
+        auth = dict(target='replaced by test1', user='james', secret='11ed394')
 
         test1 = Template(
             'test1',
@@ -178,35 +289,6 @@ result:
 
 correct:
 %s
-        """ % (pprint.pformat(result), pprint.pformat(correct))
-
-        self.assertEquals(result, correct, err_msg)
-
-
-    def testReferencePreview(self):
-        """Test
-        """
-        from boaconstructor.utils import what_is_required
-
-        test1 = dict(
-            options='common.*',
-            usernames=['peter.$.username','graham.$.username'],
-            users=['peter.*', 'graham.*'],
-        )
-
-        correct = {'common':1, 'peter':1, "graham":1}
-
-
-        rendered, result = what_is_required(test1.items(), {}, {})
-
-        err_msg = """result != correct
-
-result:
-<%s>
-
-correct:
-<%s>
-
         """ % (pprint.pformat(result), pprint.pformat(correct))
 
         self.assertEquals(result, correct, err_msg)
