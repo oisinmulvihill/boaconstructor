@@ -367,28 +367,26 @@ def hunt_n_resolve(value, reference_cache):
             # resolving any references.
             #
             #print("** ALL: get all content for **\n%s\n" % result['allfrom'])
-            returned = resolve_references(
+            found = resolve_references(
                 result['allfrom'],
                 None,
                 reference_cache['int'],
                 reference_cache['ext'],
             )
 
-            # Now recurse to create the output dict this attribute should contain.
-            print "result['allfrom'] <%s>, returned <%s> type <%s>" % (
-                result['allfrom'], returned, type(returned)
-            )
-
-            if hasattr(returned, 'items'):
+            if hasattr(found, 'items'):
+                # Now recurse to create the output dict this attribute
+                # should contain.
                 returned = render(
-                    returned.items(),
+                    found.items(),
                     # No need to regenerate this, use our one.
                     reference_cache=reference_cache,
                 )
 
             else:
-                returned = "<error rendering '%s' - '%s'>" % (result['allfrom'], returned)
-
+                # This doesn't appear to be dict-like return the original
+                # value. This could be a string, number, etc.
+                returned = found
 
         else:
             # Is this an iterable? If so we need to check each entry to

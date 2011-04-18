@@ -38,22 +38,22 @@ class BoaConstructor(unittest.TestCase):
             'test1',
             {
                 'description': 'common.*',
-                'count' : 'count.*',
+                'abc' : 'count.*',
                 'data': 'data.$.a'
             },
         )
 
         result = test1.render(
             dict(
-                common='',
+                common='some text',
                 count=10,
                 data=dict(a=1)
             ),
         )
 
         correct = dict(
-            common='some text',
-            count=10,
+            description='some text',
+            abc=10,
             data=1,
         )
 
