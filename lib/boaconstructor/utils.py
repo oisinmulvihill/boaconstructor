@@ -85,6 +85,40 @@ ALLINC_RE = re.compile(r"^(?P<allfrom>.*)(?P<all>\.\*)$")
 DERIVEFROM_RE =  re.compile(r"^derivefrom\.\[(?P<derivefrom>.*)\]$")
 
 
+class ReferenceError(Exception):
+    """Raised when a reference name could not found in references given.
+
+    """
+    def __init__(self, msg, ref, *args):
+        self.message = msg
+        self.reference = ref
+        self.args = [msg,]
+
+
+class AttributeError(Exception):
+    """Raised when an attribute was not found for the references given.
+
+    """
+    def __init__(self, msg, attr, *args):
+        self.message = msg
+        self.attribute = attr
+        self.args = [msg,]
+
+
+class DeriveFromError(Exception):
+    """Raised for problems with derivefrom.[<value>] recovered item for the value.
+    """
+    def __init__(self, msg, found, *args):
+        self.message = msg
+        self.found = found
+        self.args = [msg,]
+
+
+class MultipleDeriveFromError(Exception):
+    """Raised while attempting to have multiple derivefroms in the same template.
+    """
+
+
 def parse_value(value):
     """Recover the ref-attr, all-inclusion or derive from if present.
 
@@ -142,40 +176,6 @@ def parse_value(value):
             returned['derivefrom'] = found.get('derivefrom')
 
     return returned
-
-
-class ReferenceError(Exception):
-    """Raised when a reference name could not found in references given.
-
-    """
-    def __init__(self, msg, ref, *args):
-        self.message = msg
-        self.reference = ref
-        self.args = [msg,]
-
-
-class AttributeError(Exception):
-    """Raised when an attribute was not found for the references given.
-
-    """
-    def __init__(self, msg, attr, *args):
-        self.message = msg
-        self.attribute = attr
-        self.args = [msg,]
-
-
-class DeriveFromError(Exception):
-    """Raise for problems with derivefrom.[<value>] recovered item for the value.
-    """
-    def __init__(self, msg, found, *args):
-        self.message = msg
-        self.found = found
-        self.args = [msg,]
-
-
-class MultipleDeriveFromError(Exception):
-    """Raise while attempting to have multiple derivefroms in the same template.
-    """
 
 
 def has(reference, attribute):
@@ -335,7 +335,7 @@ def build_ref_cache(int_refs, ext_refs):
     externally given references.
 
     This in effect flattens the references and making lookup faster for
-    recursive_render.
+    hunt_n_resolve.
 
     :param int_refs: a dict of 'dicts and/or Template' instances.
 
@@ -557,22 +557,22 @@ def hunt_n_resolve(value, state):
 def what_is_required(template):
     """Recover the top-level references the given template requires.
 
-    :para template: This is a dict / template or something
-    that provides the items() method, returning a list of
-    (key, value) pairs.
+    :para template: This is a dict / templatewhich provides the items() method.
 
-    Aliases are not resolved. This is purley the references
-    mentioned in the dict structure.
+    This should returning a list of (key, value) pairs.
 
-    This does not scan internal / external references the
-    template may provides. It only goes through the dict
-    values checking for ref-attr or allinc. If the value
-    found is a list, it will recurse look through it too.
+    Aliases are not resolved. This is purley the references mentioned in the
+    dict structure.
 
-    :returns: This is a dict whose keys are the references
-    found. For example:
+    This does not scan internal / external references the template may provides.
+    It only goes through the dict values checking for ref-attr or allinc. If the
+    value found is a list, it will recurse look through it too.
 
-    .. source:: python
+    :returns: This is a dict whose keys are the references found.
+
+    For example:
+
+    .. code-block:: python
 
         test2 = Template(
             'test2',
