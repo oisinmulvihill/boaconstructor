@@ -239,7 +239,11 @@ def get(reference, attribute):
             returned = getattr(reference, attribute)
 
     if not found:
-        raise AttributeError("The attribute '%s' in any reference!" % attribute)
+        raise AttributeError("The attribute '%s' in any reference!" % (
+                attribute
+            ),
+            attr=attribute
+        )
 
     return returned
 

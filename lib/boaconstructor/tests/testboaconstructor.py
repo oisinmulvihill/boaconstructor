@@ -29,6 +29,25 @@ from boaconstructor.utils import what_is_required
 class BoaConstructor(unittest.TestCase):
 
 
+    def testForMissingCoverage(self):
+        """Provide calls to parts of the code nosetests --with-coverage highlighted as missing.
+        """
+        ddict = dict(a=1)
+        self.assertEquals(utils.get(ddict, 'a'), 1)
+        self.assertRaises(utils.AttributeError, utils.get, ddict, 'b')
+
+        test1 = Template('test1', dict(
+            a=1
+        ))
+        self.assertEquals(utils.has(test1, 'a'), True)
+        self.assertEquals(utils.has(test1, 'b'), False)
+
+        self.assertRaises(boaconstructor.TemplateError, lambda: Template('test1', 'not-a-dict-bad-value'))
+
+        self.assertEquals(str(test1), "{'a': 1}")
+
+
+
     def testMultipleDeriveFromNotSupported(self):
         """Check I can't have more then one derivefrom in a template.
         """
