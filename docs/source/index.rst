@@ -109,7 +109,7 @@ inclusion and extension.
             'peter': peter,
             'graham': graham,
         },
-        extendwith=search,
+        derivefrom=search,
     )
 
     pprint.pprint(result)
