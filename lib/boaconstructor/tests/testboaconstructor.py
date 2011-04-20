@@ -29,6 +29,52 @@ from boaconstructor.utils import what_is_required
 class BoaConstructor(unittest.TestCase):
 
 
+    def testDerviveFromNotFoundInsideListOfDicts(self):
+        """
+        """
+        common = dict(timeout=30)
+
+        machine = dict(
+            items=[ dict(c='derivefrom.[common]'), ],
+            host='<place holder>',
+            port=12987,
+            timeout='common.$.timeout',
+        )
+
+        # Use machine as base and override the host and timeout:
+        test1 = Template(
+            'test1',
+            {
+                'This is a comment.': 'derivefrom.[machine]',
+                'host' : 'example.com',
+                'timeout': 10,
+                'beep': False,
+            },
+        )
+
+        result = test1.render(dict(machine=machine, common=common))
+
+        correct = dict(
+            host='example.com',
+            port=12987,
+            timeout=10,
+            beep=False,
+            items=[ dict(timeout=30) ]
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+
     def testForMissingCoverage(self):
         """Provide calls to parts of the code nosetests --with-coverage highlighted as missing.
         """
@@ -286,6 +332,26 @@ correct:
         )
 
         correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Make sure what is required looks at derivefrom commands:
+        test2 = Template(
+            'test2',
+            {'replace': 'derivefrom.[test1]'},
+        )
+
+        correct = {'test1':1}
 
         result = what_is_required(test2)
 

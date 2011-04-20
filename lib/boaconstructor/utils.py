@@ -548,6 +548,13 @@ def hunt_n_resolve(value, state):
                 for item in value:
                     returned.append(hunt_n_resolve(item, state))
 
+            else:
+                print """
+
+** Unhandled dict **
+
+                """
+
             # Ok, exit.
             break
 
@@ -596,6 +603,9 @@ def what_is_required(template):
             elif result['found'] == 'all':
                 required[result['allfrom']] = 1
 
+            elif result['found'] == 'derivefrom':
+                required[result['derivefrom']] = 1
+
             else:
                 if hasattr(item, '__iter__') and type(item) != types.DictType:
                     list_recurse(item)
@@ -608,6 +618,9 @@ def what_is_required(template):
 
         elif result['found'] == 'all':
             required[result['allfrom']] = 1
+
+        elif result['found'] == 'derivefrom':
+            required[result['derivefrom']] = 1
 
         else:
             # Is this an iterable? If so we need to check each entry to
