@@ -536,9 +536,11 @@ def hunt_n_resolve(value, state):
             returned = '' # prevent looping forever.
 
         else:
+            the_type = type(value)
+
             # Is this an iterable? If so we need to check each entry to
             # see if its a ref-attr, all-inc, etc
-            if hasattr(value, '__iter__') and type(value) != types.DictType:
+            if hasattr(value, '__iter__') and not hasattr(value, 'items'):
                 # ignore dicts, this would iterate over the keys which
                 # is not what we want.
                 #
@@ -548,12 +550,10 @@ def hunt_n_resolve(value, state):
                 for item in value:
                     returned.append(hunt_n_resolve(item, state))
 
-            else:
-                print """
-
-** Unhandled dict **
-
-                """
+            elif hasattr(value, 'items'):
+                # We need to render this dict like item:
+                #print "0. Here: <%s>" % pprint.pformat(value)
+                returned = render(state.subState(value, name='sub-dict'))
 
             # Ok, exit.
             break
@@ -562,7 +562,7 @@ def hunt_n_resolve(value, state):
 
 
 def what_is_required(template):
-    """Recover the top-level references the given template requires.
+    """Recover the 'top-level' references the given template requires.
 
     :para template: This is a dict / templatewhich provides the items() method.
 
@@ -581,15 +581,28 @@ def what_is_required(template):
 
     .. code-block:: python
 
-        test2 = Template(
-            'test2',
-            dict(host='test1.*', stuff=['com.$.keep', ["frank.*",]]),
-        )
-
-        result = what_is_required(test2)
-
-        print result
-        {'test1':1, 'com':1, "frank":1}
+        >>> from boaconstructor import Template
+        >>> from boaconstructor.utils import what_is_required
+        >>>
+        >>> test2 = Template(
+        ...     'test2',
+        ...     dict(
+        ...         x='derivefrom.[trucks]',
+        ...         items=[
+        ...             dict(abc='derivefrom.[cars]'),
+        ...         ],
+        ...         host='test1.*',
+        ...         stuff=[
+        ...             'com.$.keep',
+        ...             ["frank.*",]
+        ...         ]
+        ...     ),
+        ... )
+        >>>
+        >>> result = what_is_required(test2)
+        >>>
+        >>> print result
+        {'test1': 1, 'cars': 1, 'com': 1, 'trucks': 1, 'frank': 1}
 
     """
     required = {}
@@ -607,8 +620,13 @@ def what_is_required(template):
                 required[result['derivefrom']] = 1
 
             else:
-                if hasattr(item, '__iter__') and type(item) != types.DictType:
+                if hasattr(item, '__iter__') and not hasattr(item, 'items'):
                     list_recurse(item)
+
+                elif hasattr(item, 'items'):
+                    # We need to render this dict like item:
+                    #print "A. Here: <%s>" % pprint.pformat(item)
+                    list_recurse(item.items())
 
     for top_level_ref, attr_or_ref in template.items():
         result = parse_value(attr_or_ref)
@@ -623,10 +641,17 @@ def what_is_required(template):
             required[result['derivefrom']] = 1
 
         else:
+            the_type = type(attr_or_ref)
+
             # Is this an iterable? If so we need to check each entry to
             # see if its a ref-attr or all-inc.
-            if hasattr(attr_or_ref, '__iter__') and type(attr_or_ref) != types.DictType:
+            if hasattr(attr_or_ref, '__iter__') and not hasattr(attr_or_ref, 'items'):
                 list_recurse(attr_or_ref)
+
+            elif hasattr(attr_or_ref, 'items'):
+                # We need to render this dict like item:
+                #print "B. Here: <%s>" % pprint.pformat(attr_or_ref)
+                list_recurse(attr_or_ref.items())
 
     return required
 

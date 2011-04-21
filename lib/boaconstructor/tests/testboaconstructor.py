@@ -73,6 +73,42 @@ correct:
 
         self.assertEquals(result, correct, err_msg)
 
+        # Check what_is_required finds the derivefrom references
+        # inside the same dict-in-list situation.
+        #
+        # Use machine as base and override the host and timeout:
+        test1 = Template(
+            'test1',
+            {
+                'This is a comment.': 'derivefrom.[something]',
+                'host' : 'example.com',
+                'timeout': 10,
+                'items': [
+                    dict(
+                        x='derivefrom.[common]',
+                        y=[
+                            dict(x='derivefrom.[bob]')
+                        ]
+                    ),
+                ],
+                'beep': False,
+            },
+        )
+
+        correct = {'common':1, 'something':1, 'bob': 1}
+
+        result = what_is_required(test1)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
 
 
     def testForMissingCoverage(self):
@@ -139,7 +175,6 @@ correct:
                 test1.render,
                 dict(abc=bad)
             )
-
 
 
     def testDeriveFrom(self):
