@@ -22,47 +22,44 @@ import unittest
 import boaconstructor
 from boaconstructor import utils
 from boaconstructor import Template
+from boaconstructor.utils import what_is_required
+
 
 
 class BoaConstructor(unittest.TestCase):
 
 
-    def testTemplateExtending(self):
-        """Test using the render extend argument.
+    def testDerviveFromNotFoundInsideListOfDicts(self):
         """
-        common = dict(buffer=4096)
+        """
+        common = dict(timeout=30)
 
-        auth = dict(target='<to replace by test1>', user='james', secret='11ed394')
+        machine = dict(
+            items=[ dict(c='derivefrom.[common]'), ],
+            host='<place holder>',
+            port=12987,
+            timeout='common.$.timeout',
+        )
 
+        # Use machine as base and override the host and timeout:
         test1 = Template(
             'test1',
             {
-                # This will overwrite the place holder in auth 'target'
-                'target': 'production',
-
-                'system':'Live00',
-                'recv': 'common.$.buffer',
-
-                # The rest of auth will end up here
+                'This is a comment.': 'derivefrom.[machine]',
+                'host' : 'example.com',
+                'timeout': 10,
+                'beep': False,
             },
         )
 
-        result = test1.render(
-            dict(
-                common=common,
-            ),
-            # Extend the rendered dict with all the resolve key,values
-            # from the given dict. It will also be processed using the
-            # references:
-            extendwith=auth,
-        )
+        result = test1.render(dict(machine=machine, common=common))
 
         correct = dict(
-            target='production',
-            system='Live00',
-            recv=4096,
-            user='james',
-            secret='11ed394',
+            host='example.com',
+            port=12987,
+            timeout=10,
+            beep=False,
+            items=[ dict(timeout=30) ]
         )
 
         # aid visual debug:
@@ -72,6 +69,333 @@ result:
 
 correct:
 %s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Check what_is_required finds the derivefrom references
+        # inside the same dict-in-list situation.
+        #
+        # Use machine as base and override the host and timeout:
+        test1 = Template(
+            'test1',
+            {
+                'This is a comment.': 'derivefrom.[something]',
+                'host' : 'example.com',
+                'timeout': 10,
+                'items': [
+                    dict(
+                        x='derivefrom.[common]',
+                        y=[
+                            dict(x='derivefrom.[bob]')
+                        ]
+                    ),
+                ],
+                'beep': False,
+            },
+        )
+
+        correct = {'common':1, 'something':1, 'bob': 1}
+
+        result = what_is_required(test1)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+
+    def testForMissingCoverage(self):
+        """Provide calls to parts of the code nosetests --with-coverage highlighted as missing.
+        """
+        ddict = dict(a=1)
+        self.assertEquals(utils.get(ddict, 'a'), 1)
+        self.assertRaises(utils.AttributeError, utils.get, ddict, 'b')
+
+        test1 = Template('test1', dict(
+            a=1
+        ))
+        self.assertEquals(utils.has(test1, 'a'), True)
+        self.assertEquals(utils.has(test1, 'b'), False)
+
+        self.assertRaises(boaconstructor.TemplateError, lambda: Template('test1', 'not-a-dict-bad-value'))
+
+        self.assertEquals(str(test1), "{'a': 1}")
+
+
+
+    def testMultipleDeriveFromNotSupported(self):
+        """Check I can't have more then one derivefrom in a template.
+        """
+        common = dict(timeout=30)
+
+        machine = dict(
+            host='<place holder>',
+            port=12987,
+            timeout='common.$.timeout',
+        )
+
+        # Use machine as base and override the host and timeout:
+        test1 = Template(
+            'test1',
+            {
+                '1. a': 'derivefrom.[machine]',
+                '2. b': 'derivefrom.[common]',
+            },
+        )
+
+        self.assertRaises(
+            boaconstructor.utils.MultipleDeriveFromError,
+            test1.render,
+            dict(machine=machine, common=common)
+        )
+
+        # Also catch attempts at deriving from non templates, strings, numbers, etc.
+        test1 = Template(
+            'test1',
+            {
+                'bad': 'derivefrom.[abc]',
+            },
+        )
+
+        bad_values = [
+            1, None, 0, "", "hello there", u"", Exception, object()
+        ]
+
+        for bad in bad_values:
+            #print "bad: ", bad
+            self.assertRaises(
+                boaconstructor.utils.DeriveFromError,
+                test1.render,
+                dict(abc=bad)
+            )
+
+
+    def testDeriveFrom(self):
+        """Test the derivefrom value and its use to override a 'base' dict.
+        """
+        common = dict(timeout=30)
+
+        machine = dict(
+            host='<place holder>',
+            port=12987,
+            timeout='common.$.timeout',
+        )
+
+        # Use machine as base and override the host and timeout:
+        test1 = Template(
+            'test1',
+            {
+                'This is a comment.': 'derivefrom.[machine]',
+                'host' : 'example.com',
+                'timeout': 10,
+                'beep': False,
+            },
+        )
+
+        result = test1.render(dict(machine=machine, common=common))
+
+        correct = dict(
+            host='example.com',
+            port=12987,
+            timeout=10,
+            beep=False
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+    def testDeriveFromNested(self):
+        """Test the derivefrom being used in a nested fashion.
+        """
+        buffer = dict(a=1, b=2)
+
+        common = dict(timeout=30, c="buffer.$.a")
+
+        # Machine derived from common:
+        machine = dict(
+            common='derivefrom.[common]',
+            host='<place holder>',
+            port=12987,
+        )
+
+        # Test1 derives from machine:
+        test1 = Template(
+            'test1',
+            {
+                'This is a comment.': 'derivefrom.[machine]',
+                'host' : 'example.com',
+                'timeout': 10,
+                'beep': False,
+                'd': 'buffer.$.b'
+            },
+        )
+
+        result = test1.render(dict(
+            machine=machine, common=common, buffer=buffer
+        ))
+
+        # And it should look like:
+        correct = dict(
+            host='example.com',
+            port=12987,
+            timeout=10,
+            beep=False,
+            c=1,
+            d=2,
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+
+    def testAllInclusionOnNonDicts(self):
+        """Test that all -inclusion on non dict simply puts the value the resolves in.
+        """
+        common = u"some text"
+
+        test1 = Template(
+            'test1',
+            {
+                'description': 'common.*',
+                'abc' : 'count.*',
+                'data': 'data.$.a'
+            },
+        )
+
+        result = test1.render(
+            dict(
+                common='some text',
+                count=10,
+                data=dict(a=1)
+            ),
+        )
+
+        correct = dict(
+            description='some text',
+            abc=10,
+            data=1,
+        )
+
+        # aid visual debug:
+        err_msg = """result != correct
+result:
+%s
+
+correct:
+%s
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+
+
+    def testReferencePreview(self):
+        """Test that the top-level references the template need are highlighted
+        by what_is_required.
+
+        """
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', keep='com.$.keep', value="frank.*"),
+        )
+
+        correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Try with a list of ref-attr / all inc
+        #
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', stuff=['com.$.keep', "frank.*"]),
+        )
+
+        correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Try with a nested list
+        #
+        test2 = Template(
+            'test2',
+            dict(host='test1.*', stuff=['com.$.keep', ["frank.*",]]),
+        )
+
+        correct = {'test1':1, 'com':1, "frank":1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
+        """ % (pprint.pformat(result), pprint.pformat(correct))
+
+        self.assertEquals(result, correct, err_msg)
+
+        # Make sure what is required looks at derivefrom commands:
+        test2 = Template(
+            'test2',
+            {'replace': 'derivefrom.[test1]'},
+        )
+
+        correct = {'test1':1}
+
+        result = what_is_required(test2)
+
+        err_msg = """result != correct
+result:
+<%s>
+
+correct:
+<%s>
         """ % (pprint.pformat(result), pprint.pformat(correct))
 
         self.assertEquals(result, correct, err_msg)
@@ -109,7 +433,7 @@ correct:
             ),
         )
 
-        # simulate only known authentication details at run/render time:
+        # simulate only knowing authentication details at run/render time:
         result = test2.render(dict(
             auth=auth,
         ))
@@ -166,6 +490,7 @@ correct:
             dict(username='gturner', secret='54jsl31'),
         ]
         u.sort()
+
         correct = dict(
             options=dict(keep='yes', buffer=4096),
             usernames=['pstoppard', 'gturner'],
@@ -181,7 +506,6 @@ correct:
         """ % (pprint.pformat(result), pprint.pformat(correct))
 
         self.assertEquals(result, correct, err_msg)
-
 
 
     def testRender(self):
@@ -206,11 +530,12 @@ correct:
         )
 
         # 'Render' test2 into a dict using the internal utils function:
-        result = utils.render(
-            test2.content.items(),
+        state = utils.RenderState(
+            test2,
             int_refs=test2.references,
             ext_refs={'common':common}
         )
+        result = utils.render(state)
 
         correct = dict(
             buffer=4096,
@@ -269,7 +594,10 @@ correct:
         # This should correctly identify data test1 refers to.as an internal
         # reference:
         #
-        result = utils.build_ref_cache(int_refs, ext_refs)
+        # old approach: utils.build_ref_cache(int_refs, ext_refs)
+        # new approach via render state:
+        state = utils.RenderState({}, int_refs, ext_refs)
+        result = state.referenceCache
 
         correct = {
             'int': {

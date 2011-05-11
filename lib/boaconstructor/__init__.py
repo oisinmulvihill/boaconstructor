@@ -27,4 +27,4 @@ import core
 from core import Template
 from core import TemplateError
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"

@@ -26,11 +26,11 @@ Source Code:
   * GitHub: <a href="https://github.com/oisinmulvihill/boaconstructor">https://github.com/oisinmulvihill/boaconstructor</a>
 
 Documentation:
- 
+
   * <a href="http://packages.python.org/boaconstructor">http://packages.python.org/boaconstructor/</a>
 
 Python Package Index:
- 
+
   * <a href="http://pypi.python.org/pypi/boaconstructor">http://pypi.python.org/pypi/boaconstructor</a>
 
 
@@ -42,45 +42,51 @@ Python dictionaries from other templates, dictionaries or instances.
 
 <pre>
 
+import pprint
+
 from boaconstructor import Template
 
-# Data to be used in host1 and host2
-common = Template('common', {
-    "timeout": 42,
-    "buffer": 4096,
-})
+common = dict(keep='yes', buffer=4096, timeout=30)
 
-# Uses data from common:
-host1 = Template('host1', {
-        "host": "1.2.3.4",
-        "flag": False,
-        "timeout": 'common.$.timeout',
-        "buffer": 'common.$.buffer',
-    },
-    references = {'common':common}
+peter = dict(username='pstoppard', secret='11ed394')
+graham = Template('user', dict(username='gturner', secret='54jsl31'))
+
+# "base" data test1 will derive from an provide an
+# alternative name
+search = dict(
+    name = '<over written in rendered output>',
+    search = 'google.com',
+    timeout = 'common.$.timeout'
 )
 
-# Render the 'host1' dict:
-result = host1.render()
->> result  = {"host":"1.2.3.4","flag":False,"timeout":42,"buffer":4096}
-
-
-# Uses data from common and host1
-host2 = Template('host2', {
-        "host": "4.3.2.1",
-        "flag": 'host.$.flag',
-        "timeout": 'common.$.timeout',
-        "recv": 'host.$.buffer'
+test1 = Template(
+    'test1',
+    {
+        "": "derivefrom.[search]",
+        "name": 'production',
+        "options": 'common.*',
+        "usernames": ['peter.$.username','graham.$.username'],
+        "users": ['peter.*', 'graham.*'],
     },
-    references = {
+)
+
+result = test1.render(
+    references={
         'common': common,
-        'host': host1,
-    }
+        'peter': peter,
+        'graham': graham,
+        'search': search,
+    },
 )
 
-# Render the 'host2' dict which should resolve and construct result:
-result = host2.render()
->> result = {"host":"4.3.2.1","flag":False,"timeout":42,"recv":4096}
+pprint.pprint(result)
+{'name': 'production',
+ 'options': {'buffer': 4096, 'timeout': 30, 'keep': 'yes'},
+ 'search': 'google.com',
+ 'timeout': 30,
+ 'usernames': ['pstoppard', 'gturner'],
+ 'users': [{'username': 'pstoppard', 'secret': '11ed394'},
+           {'username': 'gturner', 'secret': '54jsl31'}]}
 
 </pre>
 
@@ -88,3 +94,14 @@ Have a look at tests/testboacontructor.py for usage examples. For detailed
 documentation why not head over <a href="http://packages.python.org/boaconstructor">here</a>.
 
  * <a href="http://packages.python.org/boaconstructor">http://packages.python.org/boaconstructor/</a>
+
+
+Releases
+--------
+
+0.3.0
+~~~~~
+
+ * Introduces "derivefrom.[]" operation which can now be used in dictionary values.
+
+ * Increased test coverage and Sphinx generated documentation.
