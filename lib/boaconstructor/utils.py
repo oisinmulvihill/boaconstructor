@@ -321,8 +321,9 @@ def resolve_references(reference, attribute, int_references, ext_references={}):
             returned = get(r, attribute)
 
     if not found:
-        raise AttributeError("The attribute '%s' in any reference!" % (
-                attribute
+        raise AttributeError("Attribute '%s' was not be found in '%s' or any other references!" % (
+                attribute,
+                reference
             ),
             attribute
         )

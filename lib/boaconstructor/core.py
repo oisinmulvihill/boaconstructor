@@ -66,13 +66,8 @@ class Template(object):
 
     Notes:
 
-      * A template refence is a dictionary value string containing ".$.". It
-        has the format::
-
-        "<template reference>.$.<attribute from template's content>".
-
       * The references can be given to the constructor or at render time. If
-        both are given the render version is used.
+        both are given the render will take high precedence.
 
       * In host2.render(...) above the reference 'host' was used as an alias to
         'host1'.
