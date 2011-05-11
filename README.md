@@ -49,7 +49,7 @@ from boaconstructor import Template
 common = dict(keep='yes', buffer=4096, timeout=30)
 
 peter = dict(username='pstoppard', secret='11ed394')
-graham = dict(username='gturner', secret='54jsl31')
+graham = Template('user', dict(username='gturner', secret='54jsl31'))
 
 # "base" data test1 will derive from an provide an
 # alternative name
