@@ -1,4 +1,7 @@
 #!/bin/bash
+#
+#
+PYTHON={PYTHON:=python27}
 TMPBUILDDIR=${TMPBUILDDIR:=/tmp/p_`date +'%Y%m%d%H%M%S'`}
 BASKET=${BASKET:=-i http://localhost/basket}
 SRC=`pwd`/lib
