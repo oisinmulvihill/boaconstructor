@@ -1,4 +1,5 @@
 dist*
+target
 docs/build*
 build*
 lib/boaconstructor.egg-info*
