@@ -14,11 +14,15 @@ ${TMPBUILDDIR}/bin/easy_install ${BASKET} nose NoseXUnit coverage pylint
 
 if [ "$?" == 0 ]
 then
-    ${TMPBUILDDIR}/bin/nosetests -sv --with-nosexunit --source-folder=$SRC
+    echo "Running all tests"
+    ${TMPBUILDDIR}/bin/nosetests -sv --with-nosexunit --source-folder=$SRC --enable-cover
     #  --enable-cover --enable-audit
 else
     echo "Test dependancy install FAILED!"
 fi
+
+# Build egg:
+${TMPBUILDDIR}/bin/python setup.py bdist_egg
 
 # Clean up
 deactivate
