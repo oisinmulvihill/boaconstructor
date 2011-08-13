@@ -21,8 +21,9 @@ else
     echo "Test dependancy install FAILED!"
 fi
 
-# Build egg:
+# Build egg and source distribution:
 ${TMPBUILDDIR}/bin/python setup.py bdist_egg
+${TMPBUILDDIR}/bin/python setup.py sdist
 
 # Clean up
 deactivate
