@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #
-VIRTUALENV={VIRTUALENV:=virtualenv}
+VIRTUALENV=${VIRTUALENV:=virtualenv}
 TMPBUILDDIR=${TMPBUILDDIR:=/tmp/p_`date +'%Y%m%d%H%M%S'`}
 BASKET=${BASKET:=-i http://localhost/basket}
 SRC=`pwd`/lib
