@@ -127,7 +127,7 @@ EntryPoints = {
 }
 
 setup(
-#    url=ProjecUrl,
+    url=ProjecUrl,
     name=Name,
     zip_safe=False,
     version=Version,

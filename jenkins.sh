@@ -2,8 +2,8 @@
 #
 #
 VIRTUALENV=${VIRTUALENV:=virtualenv}
-TMPBUILDDIR=${TMPBUILDDIR:=/tmp/p_`date +'%Y%m%d%H%M%S'`}
-BASKET=${BASKET:=-i http://localhost/basket}
+TMPBUILDDIR=${TMPBUILDDIR:=ut_`date +'%Y%m%d%H%M%S'`}
+BASKET=${BASKET:=-f http://localhost/basket}
 SRC=`pwd`/lib
 
 # Build Test Environment:
