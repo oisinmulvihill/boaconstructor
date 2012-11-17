@@ -2,13 +2,13 @@
 #
 #
 VIRTUALENV=${VIRTUALENV:=virtualenv}
-TMPBUILDDIR=${TMPBUILDDIR:=ut_`date +'%Y%m%d%H%M%S'`}
+TMPBUILDDIR=${TMPBUILDDIR:=pyenv}
 BASKET=${BASKET:=-f http://localhost/basket}
 SRC=`pwd`/lib
 
 # Build Test Environment:
 echo "Building Test Environment"
-${VIRTUALENV} $TMPBUILDDIR
+${VIRTUALENV} --clear $TMPBUILDDIR
 source ${TMPBUILDDIR}/bin/activate
 ${TMPBUILDDIR}/bin/easy_install ${BASKET} nose NoseXUnit coverage pylint
 
